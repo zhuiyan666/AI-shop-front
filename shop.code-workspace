@@ -1,0 +1,13 @@
+{
+    "folders": [
+		{
+			"path": "detect-end"
+		},
+		{
+			"path": "front-shop"
+		}
+	],
+	"settings": {
+		"workbench.settings.useSplitJSON": false
+	}
+}

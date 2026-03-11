@@ -1,0 +1,115 @@
+/* ============================================
+   detect-end — 暗色监控大屏全局样式
+   ============================================ */
+:root {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #38bdf8;
+
+  --bg-base: #070b14;
+  --bg-card: #0d1220;
+  --bg-card2: #131929;
+  --bg-glass: rgba(13, 18, 32, 0.8);
+
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+
+  --border: rgba(99, 102, 241, 0.12);
+  --border-bright: rgba(99, 102, 241, 0.35);
+
+  --glow-primary: 0 0 20px rgba(99, 102, 241, 0.3);
+  --glow-success: 0 0 16px rgba(16, 185, 129, 0.4);
+  --glow-danger: 0 0 16px rgba(239, 68, 68, 0.4);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%),
+    var(--bg-base);
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-card); }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
+
+/* 通用卡片 */
+.d-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  transition: var(--transition);
+}
+
+/* 状态指示点 */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.status-dot.online  { background: var(--success); box-shadow: var(--glow-success); }
+.status-dot.offline { background: var(--danger);  box-shadow: var(--glow-danger); }
+.status-dot.unknown { background: var(--text-muted); }
+
+/* Element Plus 深色覆盖 */
+.el-table {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+.el-table th.el-table__cell,
+.el-table tr {
+  background: transparent !important;
+}
+.el-table td.el-table__cell,
+.el-table th.el-table__cell {
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+.el-table__row:hover > td.el-table__cell {
+  background: rgba(99,102,241,0.08) !important;
+}
+
+/* 渐变文字 */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary-light), var(--info));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+.fade-in-up { animation: fade-in-up 0.5s ease both; }
