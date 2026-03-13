@@ -1,7 +1,7 @@
 import request from './request'
 
 const delay = (ms = 200) => new Promise(r => setTimeout(r, ms))
-const MOCK = true
+const MOCK = false
 
 export const loginApi = async (data) => {
   if (MOCK) {
@@ -28,4 +28,8 @@ export const getUserInfoApi = async () => {
     return { code: 200, data: { id: 1, username: 'test', nickname: '测试用户', avatar: 'https://picsum.photos/seed/avatar/100/100' } }
   }
   return request.get('/auth/me')
+}
+
+export const logoutApi = async (data) => {
+  return request.post('/auth/logout', data)
 }

@@ -43,6 +43,10 @@
             <div class="meta-label">累计心跳</div>
             <div class="meta-value info">{{ server.heartbeatCount }} 次</div>
           </div>
+          <div class="meta-item">
+            <div class="meta-label">网络延迟</div>
+            <div class="meta-value" :class="pingClass(server.latency)">{{ server.latency }} <small>ms</small></div>
+          </div>
         </div>
 
         <!-- 当前资源使用 -->
@@ -63,6 +67,15 @@
             </div>
             <div class="resource-track">
               <div class="resource-fill mem" :style="{ width: server.memory + '%' }"></div>
+            </div>
+          </div>
+          <div class="resource-item">
+            <div class="resource-header">
+              <span>磁盘空间使用率</span>
+              <span class="disk-val">{{ server.disk?.toFixed(1) || 0 }}%</span>
+            </div>
+            <div class="resource-track">
+              <div class="resource-fill disk" :style="{ width: (server.disk || 0) + '%' }"></div>
             </div>
           </div>
         </div>
@@ -89,39 +102,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useServerStore } from '../store/serverStore'
 import HeartbeatChart from '../components/HeartbeatChart.vue'
-import { getHeartbeatHistoryApi } from '../api/monitor'
 
 const route = useRoute()
 const store = useServerStore()
 
 const server = computed(() => store.getServer(route.params.id))
-const heartbeatHistory = ref([])
+const heartbeatHistory = computed(() => store.serverHistoryMap[route.params.id] || [])
 
-let refreshTimer = null
-
-onMounted(async () => {
-  const res = await getHeartbeatHistoryApi(route.params.id)
-  heartbeatHistory.value = res.data || []
-
-  // 每 3 秒追加一个新数据点（模拟实时刷新）
-  refreshTimer = setInterval(() => {
-    if (!server.value || server.value.status !== 'online') return
-    const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    heartbeatHistory.value.push({
-      timestamp: now,
-      cpu: server.value.cpu,
-      memory: server.value.memory,
-      latency: Math.floor(Math.random() * 30) + 5
-    })
-    if (heartbeatHistory.value.length > 40) heartbeatHistory.value.shift()
-  }, 3000)
-})
-
-onUnmounted(() => clearInterval(refreshTimer))
+// No mock endpoints or timers needed here anymore. The websocket in App.vue automatically pushes 
+// real data into serverStore's `serverHistoryMap` on each HEARTBEAT (DATA type) packet.
 
 function formatDate (ts) {
   return ts ? new Date(ts).toLocaleString('zh-CN') : '—'
@@ -137,6 +130,11 @@ function cpuClass (cpu) {
   if (cpu >= 80) return 'danger-val'
   if (cpu >= 60) return 'warning-val'
   return 'normal-val'
+}
+function pingClass (latency) {
+  if (latency >= 100) return 'ping-danger'
+  if (latency >= 50) return 'ping-warning'
+  return 'ping-good'
 }
 </script>
 
@@ -204,7 +202,7 @@ function cpuClass (cpu) {
 
 .meta-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   padding: 20px 0;
   border-top: 1px solid var(--border);
@@ -215,6 +213,10 @@ function cpuClass (cpu) {
 .meta-value { font-size: 14px; color: var(--text-primary); font-weight: 500; }
 .meta-value.mono { font-family: monospace; font-size: 12px; }
 .meta-value.info { color: var(--info); }
+.ping-good { color: var(--success); font-family: monospace; font-weight: 600;}
+.ping-warning { color: var(--warning); font-family: monospace; font-weight: 600;}
+.ping-danger { color: var(--danger); font-family: monospace; font-weight: 600;}
+.meta-value small { font-size: 10px; opacity: 0.7; margin-left: 2px; }
 
 .resource-bars {
   display: flex;
@@ -232,6 +234,7 @@ function cpuClass (cpu) {
 .warning-val { color: var(--warning); font-weight: 600; }
 .danger-val  { color: var(--danger); font-weight: 600; }
 .mem-val     { color: var(--success); font-weight: 600; }
+.disk-val    { color: var(--info); font-weight: 600; }
 .resource-track {
   height: 8px;
   background: rgba(255,255,255,0.06);
@@ -245,6 +248,7 @@ function cpuClass (cpu) {
 }
 .resource-fill.cpu { background: linear-gradient(90deg, #6366f1, #818cf8); }
 .resource-fill.mem { background: linear-gradient(90deg, #10b981, #34d399); }
+.resource-fill.disk { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
 
 .panel {
   background: var(--bg-card);

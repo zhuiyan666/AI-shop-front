@@ -8,40 +8,38 @@ export const ServerStatus = {
   UNKNOWN: 'unknown'
 }
 
-// 模拟初始服务器数据
-function generateMockServers () {
-  const names = ['web-server-01', 'api-server-02', 'db-server-03', 'cache-04', 'queue-05', 'cdn-06']
-  const ips = ['192.168.1.101', '192.168.1.102', '192.168.1.103', '192.168.1.104', '192.168.1.105', '192.168.1.106']
-  return names.map((name, i) => ({
-    id: `srv-${i + 1}`,
-    name,
-    ip: ips[i],
-    status: i < 4 ? ServerStatus.ONLINE : ServerStatus.OFFLINE,
-    lastHeartbeat: Date.now() - Math.random() * 10000,
-    registeredAt: Date.now() - 1000 * 60 * 60 * (i + 1),
-    heartbeatInterval: 5000,
-    heartbeatCount: Math.floor(Math.random() * 500) + 100,
-    cpu: Math.floor(Math.random() * 80) + 10,
-    memory: Math.floor(Math.random() * 70) + 20
-  }))
-}
+// 移除原有的 generateMockServers 假数据逻辑
+
 
 export const useServerStore = defineStore('server', () => {
-  const servers = ref(generateMockServers())
+  const servers = ref([]) // 初始为空，仅有真实连接时才有数据
   const logs = ref([])
   const onlineHistory = ref([]) // [{time, count}]
+  const serverHistoryMap = ref({}) // { serverId: [{timestamp, cpu, memory}] }
+  
+  const wsStatus = ref('connecting')
+  const wsLabel = ref('连接中...')
 
   const onlineCount = computed(() => servers.value.filter(s => s.status === ServerStatus.ONLINE).length)
   const offlineCount = computed(() => servers.value.filter(s => s.status === ServerStatus.OFFLINE).length)
   const totalCount = computed(() => servers.value.length)
 
-  // 初始化历史在线数量（最近20个点）
+  // 初始化历史在线数量
+  let historyTimer = null
+
   function initHistory () {
-    const now = Date.now()
-    onlineHistory.value = Array.from({ length: 20 }, (_, i) => ({
-      time: new Date(now - (19 - i) * 5000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      count: Math.floor(Math.random() * 3) + 2
-    }))
+    onlineHistory.value = []
+    if (historyTimer) clearInterval(historyTimer)
+    historyTimer = setInterval(() => {
+      addToHistory()
+    }, 5000) // Record online history every 5 seconds
+  }
+
+  function stopHistory() {
+    if (historyTimer) {
+      clearInterval(historyTimer)
+      historyTimer = null
+    }
   }
 
   // 处理 WebSocket 事件
@@ -62,31 +60,69 @@ export const useServerStore = defineStore('server', () => {
           registeredAt: ts,
           heartbeatCount: 0,
           cpu: 0,
-          memory: 0
+          memory: 0,
+          disk: 0,
+          latency: 0
         })
       } else {
         exists.status = ServerStatus.ONLINE
         exists.lastHeartbeat = ts
+        if (serverIp) exists.ip = serverIp
       }
       addLog({ type: 'register', serverId, serverName, time, icon: '🟢' })
     } else if (type === 'HEARTBEAT') {
-      const srv = servers.value.find(s => s.id === serverId)
-      if (srv) {
-        srv.lastHeartbeat = ts
-        srv.status = ServerStatus.ONLINE
+      let srv = servers.value.find(s => s.id === serverId)
+      if (!srv) {
+        // 如果是刷新后收到的首次心跳缓存，这里负责把它重建出来
+        srv = {
+          id: serverId,
+          name: serverName || serverId,
+          ip: event.ip || '—',
+          status: ServerStatus.ONLINE,
+          lastHeartbeat: ts,
+          registeredAt: ts,
+          heartbeatCount: 0,
+          cpu: 0,
+          memory: 0,
+          disk: 0,
+          latency: 0
+        }
+        servers.value.push(srv)
+      }
+      srv.lastHeartbeat = ts
+      srv.status = ServerStatus.ONLINE
+      
+      // 只在纯粹的心跳包时增加计数和日志，忽略携带数据的DATA包
+      if (event.cpu === undefined && event.memory === undefined) {
         srv.heartbeatCount = (srv.heartbeatCount || 0) + 1
+        addLog({ type: 'heartbeat', serverId, serverName, time, icon: '💓' })
+      }
+      
+      // 记录真实历史数据给图表使用
+      if (event.cpu !== undefined || event.memory !== undefined) {
         if (event.cpu !== undefined) srv.cpu = event.cpu
         if (event.memory !== undefined) srv.memory = event.memory
+        if (event.disk !== undefined) srv.disk = event.disk
+        if (event.latency !== undefined) srv.latency = event.latency
+        if (event.ip !== undefined) srv.ip = event.ip
+        
+        if (!serverHistoryMap.value[serverId]) {
+          serverHistoryMap.value[serverId] = []
+        }
+        serverHistoryMap.value[serverId].push({
+          timestamp: time,
+          cpu: srv.cpu,
+          memory: srv.memory
+        })
+        if (serverHistoryMap.value[serverId].length > 40) {
+          serverHistoryMap.value[serverId].shift()
+        }
       }
-      addLog({ type: 'heartbeat', serverId, serverName, time, icon: '💓' })
     } else if (type === 'OFFLINE') {
       const srv = servers.value.find(s => s.id === serverId)
       if (srv) srv.status = ServerStatus.OFFLINE
       addLog({ type: 'offline', serverId, serverName, time, icon: '🔴' })
     }
-
-    // 更新在线数量历史
-    addToHistory()
   }
 
   function addLog (log) {
@@ -143,7 +179,8 @@ export const useServerStore = defineStore('server', () => {
   }
 
   return {
-    servers, logs, onlineHistory, onlineCount, offlineCount, totalCount,
-    handleServerEvent, startMockHeartbeat, stopMockHeartbeat, getServer, initHistory
+    servers, logs, onlineHistory, serverHistoryMap, onlineCount, offlineCount, totalCount,
+    wsStatus, wsLabel,
+    handleServerEvent, startMockHeartbeat, stopMockHeartbeat, getServer, initHistory, stopHistory
   }
 })

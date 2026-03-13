@@ -137,10 +137,11 @@ import StatusTable from '../components/StatusTable.vue'
 const router = useRouter()
 const store = useServerStore()
 
-const wsStatus = ref('mock')
-const wsLabel = ref('模拟模式')
 const currentTime = ref('')
 let timeTimer = null
+
+const wsStatus = computed(() => store.wsStatus)
+const wsLabel = computed(() => store.wsLabel)
 
 const onlineRate = computed(() =>
   store.totalCount ? Math.round((store.onlineCount / store.totalCount) * 100) : 0
@@ -162,13 +163,11 @@ function logAction (type) {
 }
 
 onMounted(() => {
-  store.startMockHeartbeat()
   updateTime()
   timeTimer = setInterval(updateTime, 1000)
 })
 
 onUnmounted(() => {
-  store.stopMockHeartbeat()
   clearInterval(timeTimer)
 })
 </script>

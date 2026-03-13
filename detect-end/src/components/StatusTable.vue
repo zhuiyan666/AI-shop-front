@@ -45,11 +45,27 @@
       </template>
     </el-table-column>
 
-    <el-table-column label="内存" width="100">
+    <el-table-column label="内存" width="90">
       <template #default="{ row }">
         <div v-if="row.status === 'online'" class="mini-progress">
           <div class="mini-bar mem" :style="{ width: row.memory + '%' }"></div>
         </div>
+        <span v-else class="text-muted">—</span>
+      </template>
+    </el-table-column>
+
+    <el-table-column label="磁盘" width="90">
+      <template #default="{ row }">
+        <div v-if="row.status === 'online'" class="mini-progress">
+          <div class="mini-bar disk" :style="{ width: row.disk + '%' }"></div>
+        </div>
+        <span v-else class="text-muted">—</span>
+      </template>
+    </el-table-column>
+
+    <el-table-column label="延迟" width="80" align="center">
+      <template #default="{ row }">
+        <span v-if="row.status === 'online'" :class="pingClass(row.latency)">{{ row.latency }}<small>ms</small></span>
         <span v-else class="text-muted">—</span>
       </template>
     </el-table-column>
@@ -91,6 +107,12 @@ function cpuClass (cpu) {
   if (cpu >= 60) return 'warning'
   return 'normal'
 }
+
+function pingClass (latency) {
+  if (latency >= 100) return 'ping-danger'
+  if (latency >= 50) return 'ping-warning'
+  return 'ping-good'
+}
 </script>
 
 <style scoped>
@@ -104,6 +126,11 @@ function cpuClass (cpu) {
 .text-muted { color: var(--text-muted); font-size: 12px; }
 .count { color: var(--info); font-weight: 600; }
 .time-text { font-size: 12px; color: var(--text-secondary); }
+
+.ping-good { color: var(--success); font-family: monospace; font-weight: 600;}
+.ping-warning { color: var(--warning); font-family: monospace; font-weight: 600;}
+.ping-danger { color: var(--danger); font-family: monospace; font-weight: 600;}
+.ping-good small, .ping-warning small, .ping-danger small { font-size: 10px; opacity: 0.7; margin-left: 2px;}
 
 .mini-progress {
   height: 5px;
@@ -120,4 +147,5 @@ function cpuClass (cpu) {
 .mini-bar.warning { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 .mini-bar.danger  { background: linear-gradient(90deg, #ef4444, #f87171); }
 .mini-bar.mem     { background: linear-gradient(90deg, #10b981, #34d399); }
+.mini-bar.disk    { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
 </style>

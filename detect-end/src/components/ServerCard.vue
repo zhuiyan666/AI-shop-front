@@ -25,11 +25,19 @@
         <span class="metric-val">{{ server.cpu }}%</span>
       </div>
       <div class="metric">
-        <span class="metric-label">MEM</span>
+        <span class="metric-label">内存</span>
         <div class="metric-bar">
           <div class="metric-fill mem" :style="{ width: server.memory + '%' }"></div>
         </div>
         <span class="metric-val">{{ server.memory }}%</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">网路</span>
+        <div class="metric-bar">
+           <!-- inverted latency bar -->
+          <div class="metric-fill ping" :style="{ width: Math.min(100, server.latency) + '%' }"></div>
+        </div>
+        <span class="metric-val">{{ server.latency }}<small>ms</small></span>
       </div>
     </div>
 
@@ -162,11 +170,15 @@ function formatTime (ts) {
 }
 .metric-fill.cpu  { background: linear-gradient(90deg, #6366f1, #818cf8); }
 .metric-fill.mem  { background: linear-gradient(90deg, #10b981, #34d399); }
+.metric-fill.ping { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
 .metric-val {
   color: var(--text-secondary);
-  width: 32px;
+  width: 38px;
   text-align: right;
+  font-family: monospace;
 }
+.metric-val small { font-size: 8px; color: var(--text-muted); opacity: 0.8; margin-left:1px; }
 
 .card-heartbeat {
   display: flex;
