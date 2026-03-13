@@ -97,7 +97,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../store/cart'
-import { createOrderMock } from '../../api/order'
+import { createOrderApi } from '../../api/order'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -133,7 +133,16 @@ async function submitOrder () {
   }
   submitting.value = true
   try {
-    const res = await createOrderMock(orderItems.value)
+    const res = await createOrderApi({
+      name: form.value.name,
+      phone: form.value.phone,
+      address: form.value.address,
+      items: orderItems.value.map(item => ({
+        cartId: item.id,
+        productId: item.productId,
+        quantity: item.quantity
+      }))
+    })
     const { orderId, totalAmount } = res.data
     ElMessage.success('订单创建成功！')
     router.push({ path: '/pay', query: { orderId, amount: totalAmount } })

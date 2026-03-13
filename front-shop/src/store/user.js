@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { loginApi, registerApi, getUserInfoApi, logoutApi } from '../api/user'
+import { useCartStore } from './cart'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -30,6 +31,9 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function logout () {
+    const cartStore = useCartStore()
+    cartStore.resetCart()
+
     if (userInfo.value && userInfo.value.username) {
        try {
          await logoutApi({ username: userInfo.value.username })

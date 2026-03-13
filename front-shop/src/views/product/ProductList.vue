@@ -1,7 +1,6 @@
 <template>
   <div class="product-list-page">
     <div class="container">
-      <!-- 筛选栏 -->
       <div class="filter-bar glass-card">
         <div class="filter-left">
           <span class="filter-label">分类：</span>
@@ -11,12 +10,26 @@
               :key="cat"
               :class="['cat-tab', { active: activeCategory === cat }]"
               @click="selectCategory(cat)"
-            >{{ cat }}</button>
+            >
+              {{ cat }}
+            </button>
           </div>
         </div>
         <div class="filter-right">
-          <el-input v-model="keyword" placeholder="搜索商品..." class="filter-search" clearable @input="doFilter" prefix-icon="Search" />
-          <el-select v-model="sortBy" placeholder="排序" class="sort-select" @change="doFilter">
+          <el-input
+            v-model="keyword"
+            placeholder="搜索商品..."
+            class="filter-search"
+            clearable
+            @input="doFilter"
+            prefix-icon="Search"
+          />
+          <el-select
+            v-model="sortBy"
+            placeholder="排序"
+            class="sort-select"
+            @change="doFilter"
+          >
             <el-option label="综合" value="" />
             <el-option label="价格从低到高" value="price_asc" />
             <el-option label="价格从高到低" value="price_desc" />
@@ -26,41 +39,47 @@
         </div>
       </div>
 
-      <!-- 结果信息 -->
       <div class="result-info">
         <span>共 <b style="color:#818cf8">{{ filteredProducts.length }}</b> 件商品</span>
         <span v-if="activeCategory !== '全部'" class="badge">{{ activeCategory }}</span>
         <span v-if="keyword" class="badge">关键词：{{ keyword }}</span>
       </div>
 
-      <!-- 商品列表 -->
       <div v-if="loading" class="products-grid">
         <div v-for="i in 8" :key="i" class="skeleton glass-card"></div>
       </div>
       <div v-else-if="filteredProducts.length === 0" class="empty">
-        <div style="font-size:60px">🔍</div>
+        <div class="empty-icon">🔍</div>
         <p>没有找到匹配的商品</p>
         <el-button type="primary" @click="resetFilter">重置筛选</el-button>
       </div>
-      <div v-else class="products-grid">
-        <ProductCard
-          v-for="p in filteredProducts"
-          :key="p.id"
-          :product="p"
-          @add-cart="handleAddCart"
-        />
-      </div>
+      <template v-else>
+        <div class="products-grid">
+          <ProductCard
+            v-for="p in visibleProducts"
+            :key="p.id"
+            :product="p"
+            @add-cart="handleAddCart"
+          />
+        </div>
+        <div ref="loadMoreTrigger" class="load-more-state">
+          <span v-if="hasMore">继续下滑加载更多商品</span>
+          <span v-else>已经到底了</span>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductListApi } from '../../api/product'
 import { useCartStore } from '../../store/cart'
 import ProductCard from '../../components/ProductCard.vue'
 import { ElMessage } from 'element-plus'
+
+const PAGE_SIZE = 24
 
 const route = useRoute()
 const router = useRouter()
@@ -70,13 +89,23 @@ const loading = ref(true)
 const keyword = ref(route.query.keyword || '')
 const activeCategory = ref(route.query.category || '全部')
 const sortBy = ref('')
+const visibleCount = ref(PAGE_SIZE)
+const loadMoreTrigger = ref(null)
 
-const categories = ['手机数码', '电脑平板', '音频设备', '家用电器', '运动服饰', '影音娱乐']
+let observer = null
+
+const categories = computed(() => {
+  return [...new Set(allProducts.value.map((p) => p.category).filter(Boolean))]
+})
 
 const filteredProducts = computed(() => {
   let list = [...allProducts.value]
-  if (activeCategory.value !== '全部') list = list.filter(p => p.category === activeCategory.value)
-  if (keyword.value) list = list.filter(p => p.name.includes(keyword.value) || p.category.includes(keyword.value))
+  if (activeCategory.value !== '全部') {
+    list = list.filter((p) => p.category === activeCategory.value)
+  }
+  if (keyword.value) {
+    list = list.filter((p) => p.name.includes(keyword.value) || p.category.includes(keyword.value))
+  }
   if (sortBy.value === 'price_asc') list.sort((a, b) => a.price - b.price)
   else if (sortBy.value === 'price_desc') list.sort((a, b) => b.price - a.price)
   else if (sortBy.value === 'sales') list.sort((a, b) => b.sales - a.sales)
@@ -84,23 +113,78 @@ const filteredProducts = computed(() => {
   return list
 })
 
+const visibleProducts = computed(() => {
+  return filteredProducts.value.slice(0, visibleCount.value)
+})
+
+const hasMore = computed(() => visibleCount.value < filteredProducts.value.length)
+
+const loadMore = () => {
+  if (!hasMore.value) return
+  visibleCount.value = Math.min(visibleCount.value + PAGE_SIZE, filteredProducts.value.length)
+}
+
+const resetVisibleProducts = () => {
+  visibleCount.value = PAGE_SIZE
+}
+
+const setupInfiniteScroll = async () => {
+  await nextTick()
+  observer?.disconnect()
+  if (!loadMoreTrigger.value) return
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) loadMore()
+    },
+    { rootMargin: '320px 0px' }
+  )
+  observer.observe(loadMoreTrigger.value)
+}
+
 onMounted(async () => {
   const res = await getProductListApi({})
   allProducts.value = res.data?.list || []
   loading.value = false
+  await setupInfiniteScroll()
 })
 
-watch(() => route.query, (q) => {
-  keyword.value = q.keyword || ''
-  activeCategory.value = q.category || '全部'
+onBeforeUnmount(() => {
+  observer?.disconnect()
 })
 
-const selectCategory = (cat) => { activeCategory.value = cat }
+watch(
+  () => route.query,
+  (q) => {
+    keyword.value = q.keyword || ''
+    activeCategory.value = q.category || '全部'
+  }
+)
+
+watch([filteredProducts, loading], async () => {
+  resetVisibleProducts()
+  if (!loading.value) {
+    await setupInfiniteScroll()
+  }
+})
+
+const selectCategory = (cat) => {
+  activeCategory.value = cat
+}
+
 const doFilter = () => {}
-const resetFilter = () => { keyword.value = ''; activeCategory.value = '全部'; sortBy.value = '' }
+
+const resetFilter = () => {
+  keyword.value = ''
+  activeCategory.value = '全部'
+  sortBy.value = ''
+}
 
 const handleAddCart = async (product) => {
-  if (!localStorage.getItem('token')) { ElMessage.warning('请先登录'); router.push('/login'); return }
+  if (!localStorage.getItem('token')) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
   await cartStore.addToCart(product)
 }
 </script>
@@ -127,4 +211,23 @@ const handleAddCart = async (product) => {
 .products-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .skeleton { height: 340px; background: linear-gradient(90deg, rgba(26,26,46,0.8) 25%, rgba(99,102,241,0.07) 50%, rgba(26,26,46,0.8) 75%); background-size: 200% auto; animation: shimmer 1.5s linear infinite; border-radius: 12px; }
 .empty { text-align: center; padding: 80px 0; color: #64748b; display: flex; flex-direction: column; align-items: center; gap: 16px; font-size: 16px; }
+.empty-icon { font-size: 60px; }
+.load-more-state { padding: 26px 0 12px; text-align: center; color: #64748b; font-size: 13px; }
+
+@media (max-width: 1200px) {
+  .products-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 900px) {
+  .products-grid { grid-template-columns: repeat(2, 1fr); }
+  .filter-bar { padding: 18px; }
+  .filter-right { width: 100%; }
+  .filter-search,
+  .sort-select { width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .container { padding: 0 16px; }
+  .products-grid { grid-template-columns: 1fr; }
+}
 </style>

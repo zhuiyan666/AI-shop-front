@@ -47,7 +47,7 @@
           </div>
           <template #dropdown>
             <el-dropdown-menu class="user-menu">
-              <el-dropdown-item @click="$router.push('/order')">
+              <el-dropdown-item @click="$router.push('/orders')">
                 <el-icon><List /></el-icon> 我的订单
               </el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">
@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { useCartStore } from '../store/cart'
@@ -77,6 +77,11 @@ const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
 const keyword = ref('')
+
+onMounted(() => {
+  if (!userStore.isLoggedIn) return
+  cartStore.fetchCart().catch(() => {})
+})
 
 const doSearch = () => {
   if (!keyword.value.trim()) return

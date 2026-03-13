@@ -108,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getProductListApi } from '../../api/product'
 import { useCartStore } from '../../store/cart'
@@ -118,18 +118,31 @@ import { ElMessage } from 'element-plus'
 const router = useRouter()
 const cartStore = useCartStore()
 const products = ref([])
+const allProducts = ref([])
 const loading = ref(true)
 
-const categories = [
-  { name: '手机数码', icon: '📱' },
-  { name: '电脑平板', icon: '💻' },
-  { name: '音频设备', icon: '🎧' },
-  { name: '家用电器', icon: '🏠' },
-  { name: '运动服饰', icon: '👟' },
-  { name: '影音娱乐', icon: '📺' },
-  { name: '美妆护肤', icon: '💄' },
-  { name: '图书文具', icon: '📚' }
-]
+const categoryIcons = {
+  '手机数码': '📱',
+  '电脑平板': '💻',
+  '音频设备': '🎧',
+  '家用电器': '🏠',
+  '运动服饰': '👟',
+  '美妆护肤': '💄',
+  '食品保健': '🥗',
+  '宠物用品': '🐾',
+  '汽车用品': '🚗',
+  '办公文具': '📚',
+  '家居生活': '🛋️',
+  '珠宝配饰': '💍',
+  '玩具派对': '🎉',
+  '工业用品': '🛠️'
+}
+
+const categories = computed(() => {
+  return [...new Set(allProducts.value.map((p) => p.category).filter(Boolean))]
+    .slice(0, 12)
+    .map((name) => ({ name, icon: categoryIcons[name] || '🛍️' }))
+})
 
 const features = [
   { icon: '🤖', title: 'AI 语义搜索', desc: '用自然语言描述需求，AI 精准理解并推荐匹配商品' },
@@ -140,7 +153,8 @@ const features = [
 
 onMounted(async () => {
   const res = await getProductListApi({})
-  products.value = (res.data?.list || []).slice(0, 8)
+  allProducts.value = res.data?.list || []
+  products.value = allProducts.value.slice(0, 8)
   loading.value = false
 })
 

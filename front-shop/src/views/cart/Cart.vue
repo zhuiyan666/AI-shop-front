@@ -3,7 +3,7 @@
     <div class="container">
       <h1 class="page-title">🛒 购物车</h1>
 
-      <div v-if="cartStore.loading" class="loading">
+      <div v-if="cartStore.loading && cartStore.items.length === 0" class="loading">
         <el-skeleton :rows="4" animated />
       </div>
 
@@ -49,12 +49,12 @@
                 :min="1"
                 :max="99"
                 size="small"
-                @change="cartStore.updateQuantity(item.id, $event)"
+                @change="cartStore.updateQuantity(item.id, item.productId, $event)"
               />
             </div>
             <span class="center subtotal">¥{{ (item.price * item.quantity).toLocaleString() }}</span>
             <div class="center">
-              <el-button text type="danger" size="small" @click="cartStore.removeItem(item.id)">
+              <el-button text type="danger" size="small" @click="cartStore.removeItem(item.id, item.productId)">
                 <el-icon><Delete /></el-icon>
               </el-button>
             </div>
