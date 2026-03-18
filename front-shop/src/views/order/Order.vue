@@ -120,7 +120,7 @@ const submitOrder = async () => {
   submitting.value = true
   try {
     const payload = {
-      consignee: form.value.name,
+      name: form.value.name,
       phone: form.value.phone,
       address: form.value.address,
       items: orderItems.value.map((item) => ({
