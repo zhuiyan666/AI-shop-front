@@ -1,8 +1,7 @@
-<template>
+﻿<template>
   <div class="order-page">
     <div class="container">
-      <!-- 头部 -->
-      <div class="page-header fade-in-up">
+      <div class="page-header">
         <h1>确认订单</h1>
         <el-steps :active="1" finish-status="success" align-center>
           <el-step title="确认订单" />
@@ -12,12 +11,10 @@
       </div>
 
       <div class="order-layout">
-        <!-- 左侧：商品列表 + 地址 -->
         <div class="order-left">
-          <!-- 收货地址 -->
-          <div class="section-card fade-in-up">
+          <div class="section-card">
             <div class="section-title">
-              <el-icon><Location /></el-icon>
+              <IconFont name="icon-map1" size="18px" />
               收货地址
             </div>
             <el-form :model="form" label-width="80px" class="addr-form">
@@ -34,15 +31,14 @@
                 </el-col>
               </el-row>
               <el-form-item label="详细地址">
-                <el-input v-model="form.address" placeholder="省/市/区/街道/门牌号" />
+                <el-input v-model="form.address" placeholder="省 / 市 / 区 / 街道 / 门牌号" />
               </el-form-item>
             </el-form>
           </div>
 
-          <!-- 商品列表 -->
-          <div class="section-card fade-in-up" style="animation-delay:0.1s">
+          <div class="section-card">
             <div class="section-title">
-              <el-icon><ShoppingBag /></el-icon>
+              <IconFont name="icon-bags" size="18px" />
               商品清单
             </div>
             <div class="order-items">
@@ -50,7 +46,7 @@
                 <img :src="item.image" :alt="item.name" class="item-img" />
                 <div class="item-info">
                   <div class="item-name">{{ item.name }}</div>
-                  <div class="item-qty">× {{ item.quantity }}</div>
+                  <div class="item-qty">x {{ item.quantity }}</div>
                 </div>
                 <div class="item-price">¥{{ (item.price * item.quantity).toLocaleString() }}</div>
               </div>
@@ -58,32 +54,23 @@
           </div>
         </div>
 
-        <!-- 右侧：订单小计 -->
         <div class="order-right">
-          <div class="summary-card fade-in-up" style="animation-delay:0.2s">
-            <div class="section-title">订单摘要</div>
-            <div class="summary-rows">
-              <div class="summary-row">
-                <span>商品小计</span>
-                <span>¥{{ subtotal.toLocaleString() }}</span>
-              </div>
-              <div class="summary-row">
-                <span>运费</span>
-                <span class="free-ship">免运费</span>
-              </div>
-              <div class="summary-divider"></div>
-              <div class="summary-row total-row">
-                <span>合计</span>
-                <span class="total-price">¥{{ subtotal.toLocaleString() }}</span>
-              </div>
+          <div class="summary-card">
+            <div class="section-title plain">订单摘要</div>
+            <div class="summary-row">
+              <span>商品小计</span>
+              <span>¥{{ subtotal.toLocaleString() }}</span>
             </div>
-            <el-button
-              type="primary"
-              size="large"
-              class="submit-btn"
-              :loading="submitting"
-              @click="submitOrder"
-            >
+            <div class="summary-row">
+              <span>运费</span>
+              <span class="free-ship">免运费</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-row total-row">
+              <span>合计</span>
+              <span class="total-price">¥{{ subtotal.toLocaleString() }}</span>
+            </div>
+            <el-button type="primary" size="large" class="submit-btn" :loading="submitting" @click="submitOrder">
               提交订单
             </el-button>
           </div>
@@ -94,11 +81,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useCartStore } from '../../store/cart'
 import { createOrderApi } from '../../api/order'
-import { ElMessage } from 'element-plus'
+import IconFont from '../../components/IconFont.vue'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -110,44 +98,42 @@ const form = ref({
   address: ''
 })
 
-// 从购物车获取勾选商品
-const orderItems = computed(() => cartStore.checkedItems.length
-  ? cartStore.checkedItems
-  : cartStore.items
-)
-
-const subtotal = computed(() =>
-  orderItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
-)
-
-onMounted(() => {
+onMounted(async () => {
   if (!cartStore.items.length) {
-    cartStore.fetchCart()
+    await cartStore.fetchCart()
   }
 })
 
-async function submitOrder () {
+const orderItems = computed(() => (cartStore.checkedItems.length ? cartStore.checkedItems : cartStore.items))
+const subtotal = computed(() => orderItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0))
+
+const submitOrder = async () => {
   if (!form.value.name || !form.value.phone || !form.value.address) {
-    ElMessage.warning('请填写完整收货信息')
+    ElMessage.warning('请填写完整的收货信息')
     return
   }
+  if (!orderItems.value.length) {
+    ElMessage.warning('当前没有可提交的商品')
+    return
+  }
+
   submitting.value = true
   try {
-    const res = await createOrderApi({
-      name: form.value.name,
+    const payload = {
+      consignee: form.value.name,
       phone: form.value.phone,
       address: form.value.address,
-      items: orderItems.value.map(item => ({
-        cartId: item.id,
+      items: orderItems.value.map((item) => ({
         productId: item.productId,
-        quantity: item.quantity
+        quantity: item.quantity,
+        price: item.price
       }))
-    })
-    const { orderId, totalAmount } = res.data
-    ElMessage.success('订单创建成功！')
-    router.push({ path: '/pay', query: { orderId, amount: totalAmount } })
+    }
+    const res = await createOrderApi(payload)
+    const orderId = res.data?.id || res.data?.orderId || `ORDER${Date.now()}`
+    router.push({ path: '/pay', query: { orderId, amount: subtotal.value } })
   } catch (e) {
-    ElMessage.error('创建订单失败，请重试')
+    ElMessage.error(e?.response?.data?.message || '提交订单失败')
   } finally {
     submitting.value = false
   }
@@ -157,135 +143,175 @@ async function submitOrder () {
 <style scoped>
 .order-page {
   min-height: 100vh;
-  padding: 32px 0 80px;
+  padding: 24px 0 60px;
+  background: #ffffff;
+}
+
+.container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 24px;
 }
 
 .page-header {
-  margin-bottom: 40px;
-}
-.page-header h1 {
-  font-size: 28px;
-  font-weight: 700;
   margin-bottom: 24px;
-  background: linear-gradient(135deg, #f1f5f9, #818cf8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+}
+
+.page-header h1 {
+  margin: 0 0 18px;
+  color: #3a241c;
+  font-size: 30px;
+  font-weight: 800;
 }
 
 .order-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 360px;
   gap: 24px;
   align-items: start;
 }
 
-.section-card, .summary-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 24px;
-  margin-bottom: 20px;
-  animation: fade-in-up 0.5s ease both;
+.order-left {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
+
+.section-card,
+.summary-card {
+  background: #ffffff;
+  border: 1px solid rgba(255, 79, 109, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 12px 28px rgba(255, 79, 109, 0.05);
+}
+
+.section-card {
+  padding: 24px;
+}
+
 .section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  color: #3a241c;
+  font-size: 18px;
+  font-weight: 800;
 }
 
-.addr-form :deep(.el-form-item__label) {
-  color: var(--text-secondary);
+.section-title.plain {
+  margin-bottom: 14px;
 }
 
 .order-items {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-.order-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px;
-  background: var(--bg-card2);
-  border-radius: var(--radius-sm);
-}
-.item-img {
-  width: 72px;
-  height: 72px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-.item-info {
-  flex: 1;
-}
-.item-name {
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-.item-qty {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-.item-price {
-  font-weight: 600;
-  color: var(--accent);
-  font-size: 16px;
+  gap: 12px;
 }
 
-.summary-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
+.order-item {
+  display: grid;
+  grid-template-columns: 88px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  background: #fff9f7;
+  border-radius: 18px;
 }
+
+.item-img {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.item-name {
+  color: #3a241c;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.item-qty {
+  margin-top: 8px;
+  color: #9a786a;
+  font-size: 12px;
+}
+
+.item-price {
+  color: #ff5a36;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.order-right {
+  position: sticky;
+  top: 84px;
+}
+
+.summary-card {
+  padding: 24px;
+}
+
 .summary-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  margin-bottom: 12px;
+  color: #6d5246;
   font-size: 14px;
-  color: var(--text-secondary);
 }
-.free-ship {
-  color: var(--success);
-  font-weight: 500;
-}
+
 .summary-divider {
   height: 1px;
-  background: var(--border);
-  margin: 4px 0;
+  margin: 12px 0;
+  background: rgba(255, 79, 109, 0.12);
 }
+
+.free-ship {
+  color: #22a06b;
+  font-weight: 700;
+}
+
 .total-row {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+  margin-bottom: 20px;
+  color: #3a241c;
+  font-weight: 700;
 }
+
 .total-price {
-  font-size: 22px;
-  background: linear-gradient(135deg, #ec4899, #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ff5a36;
+  font-size: 28px;
 }
 
 .submit-btn {
   width: 100%;
-  height: 52px;
-  font-size: 16px;
-  border-radius: var(--radius-md) !important;
+  height: 48px;
+  border-radius: 16px;
+  font-weight: 700;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .order-layout {
     grid-template-columns: 1fr;
+  }
+
+  .order-right {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 14px;
+  }
+
+  .order-item {
+    grid-template-columns: 72px 1fr;
+  }
+
+  .item-price {
+    grid-column: 2;
   }
 }
 </style>

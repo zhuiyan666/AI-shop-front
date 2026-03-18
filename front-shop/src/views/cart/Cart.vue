@@ -1,40 +1,33 @@
-<template>
+﻿<template>
   <div class="cart-page">
     <div class="container">
-      <h1 class="page-title">🛒 购物车</h1>
+      <div class="page-head">
+        <h1 class="page-title">购物车</h1>
+        <p class="page-subtitle">统一红白主题，结算区和商品区使用同一套卡片语言。</p>
+      </div>
 
-      <div v-if="cartStore.loading && cartStore.items.length === 0" class="loading">
+      <div v-if="cartStore.loading && cartStore.items.length === 0" class="loading-card">
         <el-skeleton :rows="4" animated />
       </div>
 
-      <div v-else-if="cartStore.items.length === 0" class="empty">
-        <div style="font-size:80px">🛒</div>
-        <p>购物车空空如也</p>
+      <div v-else-if="cartStore.items.length === 0" class="empty-card">
+        <div class="empty-icon"><IconFont name="icon-cart-Empty-fill" size="42px" /></div>
+        <p>购物车还是空的</p>
         <el-button type="primary" @click="$router.push('/products')">去购物</el-button>
       </div>
 
       <div v-else class="cart-layout">
-        <!-- 商品列表 -->
         <div class="cart-list">
-          <!-- 全选 -->
-          <div class="list-header glass-card">
-            <el-checkbox
-              :model-value="allChecked"
-              @change="cartStore.toggleAll($event)"
-            >全选</el-checkbox>
-            <span style="color:#64748b;font-size:14px">商品</span>
-            <span class="center" style="color:#64748b;font-size:14px">单价</span>
-            <span class="center" style="color:#64748b;font-size:14px">数量</span>
-            <span class="center" style="color:#64748b;font-size:14px">小计</span>
-            <span class="center" style="color:#64748b;font-size:14px">操作</span>
+          <div class="list-header">
+            <el-checkbox :model-value="allChecked" @change="cartStore.toggleAll($event)">全选</el-checkbox>
+            <span>商品</span>
+            <span class="center">单价</span>
+            <span class="center">数量</span>
+            <span class="center">小计</span>
+            <span class="center">操作</span>
           </div>
 
-          <div
-            v-for="item in cartStore.items"
-            :key="item.id"
-            class="cart-item glass-card"
-            :class="{ unchecked: !item.checked }"
-          >
+          <div v-for="item in cartStore.items" :key="item.id" class="cart-item" :class="{ unchecked: !item.checked }">
             <el-checkbox :model-value="item.checked" @change="cartStore.toggleCheck(item.id)" />
             <div class="item-info" @click="$router.push(`/product/${item.productId}`)">
               <img :src="item.image" class="item-img" />
@@ -54,16 +47,15 @@
             </div>
             <span class="center subtotal">¥{{ (item.price * item.quantity).toLocaleString() }}</span>
             <div class="center">
-              <el-button text type="danger" size="small" @click="cartStore.removeItem(item.id, item.productId)">
-                <el-icon><Delete /></el-icon>
+              <el-button text class="remove-btn" size="small" @click="cartStore.removeItem(item.id, item.productId)">
+                删除
               </el-button>
             </div>
           </div>
         </div>
 
-        <!-- 结算侧边栏 -->
         <div class="cart-sidebar">
-          <div class="summary-card glass-card">
+          <div class="summary-card">
             <h3>订单摘要</h3>
             <div class="summary-line">
               <span>已选商品（{{ checkedCount }} 件）</span>
@@ -71,23 +63,17 @@
             </div>
             <div class="summary-line">
               <span>运费</span>
-              <span class="free">免费</span>
+              <span class="free">免运费</span>
             </div>
             <div class="summary-divider"></div>
             <div class="summary-total">
               <span>合计</span>
               <span class="total-price">¥{{ cartStore.total.toLocaleString() }}</span>
             </div>
-            <el-button
-              type="primary"
-              size="large"
-              :disabled="checkedCount === 0"
-              class="checkout-btn"
-              @click="handleCheckout"
-            >
-              结算（{{ checkedCount }} 件）
+            <el-button type="primary" size="large" :disabled="checkedCount === 0" class="checkout-btn" @click="handleCheckout">
+              去结算（{{ checkedCount }}）
             </el-button>
-            <button class="continue-btn" @click="$router.push('/products')">← 继续购物</button>
+            <button class="continue-btn" @click="$router.push('/products')">继续购物</button>
           </div>
         </div>
       </div>
@@ -98,8 +84,9 @@
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCartStore } from '../../store/cart'
 import { ElMessage } from 'element-plus'
+import { useCartStore } from '../../store/cart'
+import IconFont from '../../components/IconFont.vue'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -107,39 +94,263 @@ const cartStore = useCartStore()
 onMounted(() => cartStore.fetchCart())
 
 const allChecked = computed(() => cartStore.items.length > 0 && cartStore.items.every(i => i.checked))
-const checkedCount = computed(() => cartStore.checkedItems.reduce((s, i) => s + i.quantity, 0))
+const checkedCount = computed(() => cartStore.checkedItems.reduce((sum, item) => sum + item.quantity, 0))
 
 const handleCheckout = () => {
-  if (cartStore.checkedItems.length === 0) { ElMessage.warning('请选择要结算的商品'); return }
+  if (cartStore.checkedItems.length === 0) {
+    ElMessage.warning('请选择要结算的商品')
+    return
+  }
   router.push('/order')
 }
 </script>
 
 <style scoped>
-.cart-page { min-height: 100vh; padding: 24px 0 60px; }
-.container { max-width: 1300px; margin: 0 auto; padding: 0 24px; }
-.page-title { font-size: 28px; font-weight: 700; color: #e2e8f0; margin-bottom: 28px; }
-.empty { text-align: center; padding: 100px 0; color: #64748b; display: flex; flex-direction: column; align-items: center; gap: 20px; font-size: 18px; }
-.cart-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
-.cart-list { display: flex; flex-direction: column; gap: 12px; }
-.list-header { padding: 14px 20px; display: grid; grid-template-columns: 40px 1fr 120px 140px 120px 60px; align-items: center; }
-.center { text-align: center; }
-.cart-item { padding: 16px 20px; display: grid; grid-template-columns: 40px 1fr 120px 140px 120px 60px; align-items: center; transition: all 0.2s; }
-.cart-item.unchecked { opacity: 0.5; }
-.item-info { display: flex; align-items: center; gap: 12px; cursor: pointer; }
-.item-img { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; }
-.item-name { font-size: 14px; color: #e2e8f0; line-height: 1.4; }
-.item-price { color: #94a3b8; font-size: 15px; }
-.subtotal { font-size: 16px; font-weight: 700; color: #f472b6; }
-.summary-card { padding: 28px; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 84px; }
-.summary-card h3 { font-size: 18px; font-weight: 700; color: #e2e8f0; }
-.summary-line { display: flex; justify-content: space-between; font-size: 14px; color: #94a3b8; }
-.free { color: #22c55e; font-weight: 500; }
-.summary-divider { height: 1px; background: rgba(99,102,241,0.15); }
-.summary-total { display: flex; justify-content: space-between; align-items: center; }
-.summary-total span:first-child { font-size: 15px; color: #e2e8f0; }
-.total-price { font-size: 28px; font-weight: 800; color: #f472b6; }
-.checkout-btn { width: 100%; height: 50px; font-size: 17px; font-weight: 600; background: linear-gradient(135deg, #6366f1, #ec4899) !important; border: none !important; border-radius: 10px !important; }
-.continue-btn { width: 100%; height: 40px; background: transparent; border: none; color: #64748b; font-size: 13px; cursor: pointer; transition: color 0.2s; }
-.continue-btn:hover { color: #818cf8; }
+.cart-page {
+  min-height: 100vh;
+  padding: 24px 0 60px;
+  background: #ffffff;
+}
+
+.container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.page-head {
+  margin-bottom: 22px;
+}
+
+.page-title {
+  margin: 0 0 6px;
+  font-size: 30px;
+  font-weight: 800;
+  color: #3a241c;
+  letter-spacing: -0.03em;
+}
+
+.page-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #a98478;
+}
+
+.loading-card,
+.empty-card,
+.list-header,
+.cart-item,
+.summary-card {
+  background: #ffffff;
+  border: 1px solid rgba(255, 79, 109, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 12px 28px rgba(255, 79, 109, 0.05);
+}
+
+.loading-card,
+.empty-card {
+  padding: 32px;
+}
+
+.empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+  color: #7c4d3f;
+}
+
+.empty-icon {
+  width: 92px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 28px;
+  background: rgba(255, 79, 109, 0.08);
+  color: #ff4f6d;
+}
+
+.cart-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.cart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list-header,
+.cart-item {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 120px 140px 120px 72px;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.list-header {
+  color: #7c4d3f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.center {
+  text-align: center;
+}
+
+.list-header :deep(.el-checkbox),
+.cart-item :deep(.el-checkbox) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0;
+}
+
+.list-header :deep(.el-checkbox__label) {
+  padding-left: 8px;
+}
+
+.cart-item :deep(.el-checkbox__label) {
+  display: none;
+}
+
+.cart-item.unchecked {
+  opacity: 0.55;
+}
+
+.item-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.item-img {
+  width: 76px;
+  height: 76px;
+  border-radius: 18px;
+  object-fit: cover;
+  background: #fff7f7;
+}
+
+.item-name {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #3a241c;
+}
+
+.item-price {
+  color: #7c4d3f;
+  font-size: 14px;
+}
+
+.subtotal {
+  color: #ff5a36;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.remove-btn {
+  color: #ff4f6d;
+  font-weight: 700;
+}
+
+.cart-sidebar {
+  position: sticky;
+  top: 84px;
+}
+
+.summary-card {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.summary-card h3 {
+  margin: 0;
+  color: #3a241c;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.summary-line,
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+}
+
+.summary-line {
+  color: #7c4d3f;
+  font-size: 13px;
+}
+
+.free {
+  color: #22a06b;
+  font-weight: 700;
+}
+
+.summary-divider {
+  height: 1px;
+  background: rgba(255, 79, 109, 0.12);
+}
+
+.total-price {
+  color: #ff5a36;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.checkout-btn,
+.continue-btn {
+  height: 48px;
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.continue-btn {
+  border: 1px solid rgba(255, 79, 109, 0.12);
+  background: #ffffff;
+  color: #7c4d3f;
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .cart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .container {
+    padding: 0 14px;
+  }
+
+  .list-header {
+    display: none;
+  }
+
+  .cart-item {
+    grid-template-columns: 44px 1fr;
+    gap: 12px;
+  }
+
+  .cart-item > :nth-child(3),
+  .cart-item > :nth-child(4),
+  .cart-item > :nth-child(5),
+  .cart-item > :nth-child(6) {
+    grid-column: 2;
+    text-align: left;
+  }
+}
 </style>

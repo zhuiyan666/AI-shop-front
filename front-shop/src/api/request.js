@@ -9,14 +9,6 @@ const request = axios.create({
 request.interceptors.request.use(config => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
-  try {
-    const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
-    if (userInfo?.id) {
-      config.headers['X-User-Id'] = String(userInfo.id)
-    }
-  } catch (_) {
-    // ignore malformed local cache
-  }
   return config
 }, err => Promise.reject(err))
 

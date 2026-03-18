@@ -1,11 +1,9 @@
 <template>
   <div class="product-card glass-card" @click="$router.push(`/product/${product.id}`)">
-    <!-- 标签 -->
     <div class="card-tags">
       <span v-for="tag in product.tags" :key="tag" class="tag" :class="tag">{{ tag }}</span>
     </div>
 
-    <!-- 图片 -->
     <div class="card-img-wrap">
       <img :src="product.image" :alt="product.name" class="card-img" loading="lazy" />
       <div class="img-overlay">
@@ -13,10 +11,13 @@
       </div>
     </div>
 
-    <!-- 信息 -->
     <div class="card-body">
       <p class="card-category">{{ product.category }}</p>
       <h3 class="card-name">{{ product.name }}</h3>
+      <div class="card-meta">
+        <span class="merchant">{{ product.merchantName || product.brand || '平台商家' }}</span>
+        <span class="buyers">购买 {{ (product.buyerCount ?? product.sales ?? 0).toLocaleString() }}</span>
+      </div>
       <div class="card-rating">
         <el-rate :model-value="product.rating" disabled size="small" />
         <span class="sales">已售 {{ product.sales?.toLocaleString() }}</span>
@@ -26,7 +27,7 @@
         <span v-if="product.originalPrice" class="original">¥{{ product.originalPrice.toLocaleString() }}</span>
       </div>
       <button class="add-cart-btn" @click.stop="$emit('add-cart', product)">
-        <el-icon><ShoppingCart /></el-icon>
+        <IconFont name="icon-cart-full-fill" size="14px" />
         加入购物车
       </button>
     </div>
@@ -34,120 +35,215 @@
 </template>
 
 <script setup>
+import IconFont from './IconFont.vue'
+
 defineProps({ product: { type: Object, required: true } })
 defineEmits(['add-cart'])
 </script>
 
 <style scoped>
 .product-card {
-  cursor: pointer;
-  overflow: hidden;
-  transition: all 0.3s ease;
   position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid rgba(255, 79, 109, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 14px 30px rgba(255, 79, 109, 0.06);
+  transition: all 0.3s ease;
 }
+
+.product-card::before {
+  content: '';
+  position: absolute;
+  inset: 14px 14px auto auto;
+  width: 24px;
+  height: 24px;
+  border-top: 1px solid rgba(255, 79, 109, 0.14);
+  border-right: 1px solid rgba(255, 79, 109, 0.14);
+  pointer-events: none;
+}
+
 .product-card:hover {
   transform: translateY(-8px);
-  border-color: rgba(99,102,241,0.5);
-  box-shadow: 0 20px 50px rgba(99,102,241,0.2);
+  border-color: rgba(255, 79, 109, 0.28);
+  box-shadow: 0 18px 34px rgba(255, 79, 109, 0.12);
 }
 
 .card-tags {
   position: absolute;
-  top: 12px; left: 12px;
+  top: 12px;
+  left: 12px;
   z-index: 2;
-  display: flex; gap: 6px;
+  display: flex;
+  gap: 6px;
 }
+
 .tag {
+  padding: 4px 8px;
   font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 10px;
   font-weight: 600;
+  color: #ff4f6d;
+  background: rgba(255, 79, 109, 0.08);
+  border: 1px solid rgba(255, 79, 109, 0.14);
+  border-radius: 999px;
 }
-.tag.热卖 { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-.tag.新品 { background: rgba(99,102,241,0.2); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
-.tag.优惠 { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
 
 .card-img-wrap {
   position: relative;
-  height: 200px;
+  height: 220px;
   overflow: hidden;
-  background: rgba(15,15,26,0.5);
+  background: linear-gradient(180deg, #fff6f6 0%, #fffaf8 100%);
+  border-bottom: 1px solid rgba(255, 79, 109, 0.08);
 }
+
 .card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform 0.45s ease;
 }
-.product-card:hover .card-img { transform: scale(1.08); }
+
+.product-card:hover .card-img {
+  transform: scale(1.04);
+}
 
 .img-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
   opacity: 0;
   transition: opacity 0.3s;
 }
-.product-card:hover .img-overlay { opacity: 1; }
+
+.product-card:hover .img-overlay {
+  opacity: 1;
+}
 
 .quick-view {
-  padding: 8px 20px;
-  background: white;
-  color: #1a1a2e;
-  border: none;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 9px 18px;
+  background: #ffffff;
+  color: #ff4f6d;
+  border: 1px solid rgba(255, 79, 109, 0.16);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   cursor: pointer;
 }
 
-.card-body { padding: 16px; }
-.card-category { font-size: 12px; color: #6366f1; margin-bottom: 6px; }
-.card-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e2e8f0;
+.card-body {
+  padding: 18px;
+}
+
+.card-body::after {
+  content: '';
+  display: block;
+  width: 28px;
+  height: 1px;
+  margin-top: 14px;
+  background: rgba(255, 79, 109, 0.22);
+}
+
+.card-category {
   margin-bottom: 8px;
-  line-height: 1.4;
+  color: #ff4f6d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.card-name {
+  margin-bottom: 10px;
+  color: #3a241c;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #9b7867;
+  font-size: 11px;
+}
+
+.merchant,
+.buyers {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.merchant {
+  max-width: 56%;
+}
+
 .card-rating {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-.sales { font-size: 11px; color: #64748b; }
-.card-price { display: flex; align-items: baseline; gap: 8px; margin-bottom: 14px; }
-.price { font-size: 20px; font-weight: 700; color: #f472b6; }
-.original { font-size: 13px; color: #475569; text-decoration: line-through; }
+
+.sales {
+  font-size: 11px;
+  color: #a07b63;
+}
+
+.card-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.price {
+  color: #ff5a36;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.original {
+  color: #b59a86;
+  font-size: 13px;
+  text-decoration: line-through;
+}
 
 .add-cart-btn {
   width: 100%;
-  height: 38px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.1));
-  border: 1px solid rgba(99,102,241,0.35);
-  border-radius: 8px;
-  color: #818cf8;
-  font-size: 13px;
-  font-weight: 500;
+  background: #ffffff;
+  color: #ff4f6d;
+  border: 1px solid rgba(255, 79, 109, 0.16);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  transition: all 0.25s;
+  transition: all 0.25s ease;
 }
+
 .add-cart-btn:hover {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  border-color: #6366f1;
-  color: white;
   transform: translateY(-1px);
+  color: #ffffff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #ff5a36 0%, #ff4f6d 100%);
 }
 </style>

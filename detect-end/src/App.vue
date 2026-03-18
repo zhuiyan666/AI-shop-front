@@ -22,7 +22,14 @@ onMounted(() => {
   store.initHistory();
 
   // Connect to actual Spring Boot backend websocket
-  wsClient = getWsClient('ws://localhost:8080/ws/monitor')
+  const wsBase = process.env.VUE_APP_MONITOR_WS_URL || 'ws://localhost:8080/ws/monitor'
+  const token = localStorage.getItem('token') || ''
+  const monitorKey = process.env.VUE_APP_MONITOR_WS_KEY || ''
+  const qs = []
+  if (token) qs.push(`token=${encodeURIComponent(token)}`)
+  if (monitorKey) qs.push(`monitorKey=${encodeURIComponent(monitorKey)}`)
+  const wsUrl = qs.length ? `${wsBase}?${qs.join('&')}` : wsBase
+  wsClient = getWsClient(wsUrl)
   
   wsClient.on('open', () => {
     store.wsStatus = 'connected'

@@ -12,6 +12,7 @@
     "axios": "^1.13.6",
     "core-js": "^3.8.3",
     "element-plus": "^2.13.5",
+    "lucide-vue-next": "^0.577.0",
     "pinia": "^3.0.4",
     "vue": "^3.2.13",
     "vue-router": "^5.0.3"
@@ -39,7 +40,13 @@
     },
     "rules": {
       "vue/multi-word-component-names": "off",
-      "no-unused-vars": ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }]
+      "no-unused-vars": [
+        "error",
+        {
+          "varsIgnorePattern": "^_",
+          "argsIgnorePattern": "^_"
+        }
+      ]
     },
     "globals": {
       "defineProps": "readonly",

@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="pay-page">
     <div class="container">
-      <div class="pay-card fade-in-up">
+      <div class="pay-card">
         <el-steps :active="activeStep" finish-status="success" align-center class="steps">
           <el-step title="确认订单" />
           <el-step title="支付" />
@@ -28,25 +28,19 @@
             :class="['method-item', { active: selectedMethod === method.id }]"
             @click="selectedMethod = method.id"
           >
-            <span class="method-icon">{{ method.icon }}</span>
+            <span class="method-icon"><IconFont :name="method.icon" size="22px" /></span>
             <span class="method-name">{{ method.name }}</span>
-            <el-icon v-if="selectedMethod === method.id" class="check-icon"><Check /></el-icon>
+            <IconFont v-if="selectedMethod === method.id" name="icon-success-fill" size="16px" class="check-icon" />
           </div>
         </div>
 
-        <el-button
-          type="primary"
-          size="large"
-          class="pay-btn"
-          :loading="paying"
-          @click="handlePay"
-        >
+        <el-button type="primary" size="large" class="pay-btn" :loading="paying" @click="handlePay">
           {{ paying ? '支付处理中...' : `立即支付 ¥${parseFloat(amount).toLocaleString()}` }}
         </el-button>
 
         <div class="pay-tips">
-          <el-icon><Lock /></el-icon>
-          支付安全由 256-bit SSL 加密保护
+          <IconFont name="icon-security-fill" size="14px" />
+          支付安全已由 256-bit SSL 加密保护
         </div>
       </div>
     </div>
@@ -58,6 +52,7 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { payOrderApi } from '../../api/order'
+import IconFont from '../../components/IconFont.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -65,12 +60,12 @@ const paying = ref(false)
 const activeStep = ref(1)
 const selectedMethod = ref('alipay')
 
-const orderId = ref(route.query.orderId || 'ORDER' + Date.now())
+const orderId = ref(route.query.orderId || `ORDER${Date.now()}`)
 const amount = ref(route.query.amount || '0')
 
 const payMethods = [
-  { id: 'alipay', icon: '💳', name: '支付宝' },
-  { id: 'wechat', icon: '💚', name: '微信支付' }
+  { id: 'alipay', icon: 'icon-paylater-fill', name: '支付宝' },
+  { id: 'wechat', icon: 'icon-wallet1', name: '微信支付' }
 ]
 
 async function handlePay () {
@@ -91,24 +86,131 @@ async function handlePay () {
 </script>
 
 <style scoped>
-.pay-page { min-height: 100vh; display: flex; align-items: center; padding: 60px 0; }
-.pay-card { max-width: 520px; margin: 0 auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 40px; text-align: center; animation: fade-in-up 0.5s ease; }
-.steps { margin-bottom: 40px; }
-.order-info { margin-bottom: 24px; }
-.order-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
-.order-id { font-size: 14px; color: var(--text-secondary); font-family: monospace; background: var(--bg-card2); padding: 6px 16px; border-radius: 20px; display: inline-block; border: 1px solid var(--border); }
-.amount-section { margin: 32px 0; }
-.amount-label { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
-.amount { display: flex; align-items: flex-start; justify-content: center; gap: 4px; }
-.amount-unit { font-size: 28px; font-weight: 700; color: var(--accent); margin-top: 8px; }
-.amount-num { font-size: 56px; font-weight: 800; background: linear-gradient(135deg, #ec4899, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; }
-.pay-methods { display: flex; gap: 12px; margin-bottom: 32px; justify-content: center; }
-.method-item { display: flex; align-items: center; gap: 8px; padding: 14px 24px; border-radius: var(--radius-md); border: 2px solid var(--border); cursor: pointer; transition: var(--transition); flex: 1; justify-content: center; }
-.method-item:hover { border-color: var(--primary); }
-.method-item.active { border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
-.method-icon { font-size: 22px; }
-.method-name { font-weight: 600; color: var(--text-primary); }
-.check-icon { color: var(--primary); }
-.pay-btn { width: 100%; height: 56px; font-size: 18px; font-weight: 600; border-radius: var(--radius-md) !important; margin-bottom: 16px; }
-.pay-tips { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.pay-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 60px 0;
+  background: #fff8f6;
+}
+
+.container {
+  width: 100%;
+  padding: 0 24px;
+}
+
+.pay-card {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 40px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid rgba(255, 79, 109, 0.12);
+  border-radius: 28px;
+  box-shadow: 0 20px 40px rgba(255, 79, 109, 0.08);
+}
+
+.steps {
+  margin-bottom: 40px;
+}
+
+.order-info {
+  margin-bottom: 24px;
+}
+
+.order-label {
+  margin-bottom: 6px;
+  color: #9a786a;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.order-id {
+  display: inline-block;
+  padding: 6px 16px;
+  border: 1px solid rgba(255, 79, 109, 0.12);
+  border-radius: 20px;
+  background: #fff8f6;
+  color: #6a4f43;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.amount-section {
+  margin: 32px 0;
+}
+
+.amount-label {
+  margin-bottom: 10px;
+  color: #9a786a;
+  font-size: 13px;
+}
+
+.amount {
+  display: inline-flex;
+  align-items: baseline;
+  color: #ff5a36;
+}
+
+.amount-unit {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.amount-num {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.pay-methods {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.method-item {
+  display: grid;
+  grid-template-columns: 28px 1fr 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  text-align: left;
+  border: 1px solid rgba(255, 79, 109, 0.12);
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.method-item.active {
+  border-color: rgba(255, 79, 109, 0.34);
+  background: #fff8f6;
+}
+
+.method-icon,
+.check-icon {
+  color: #ff5a36;
+}
+
+.method-name {
+  color: #3a241c;
+  font-weight: 700;
+}
+
+.pay-btn {
+  width: 100%;
+  height: 50px;
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.pay-tips {
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8d6c5f;
+  font-size: 12px;
+}
 </style>
