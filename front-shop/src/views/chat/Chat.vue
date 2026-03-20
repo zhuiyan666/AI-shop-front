@@ -37,7 +37,7 @@
           <div class="msg-bubble-wrap">
             <div :class="['msg-bubble', msg.role]">
               <template v-if="msg.role === 'assistant'">
-                <span class="msg-content">{{ msg.content }}</span>
+                <div class="msg-content msg-content-markdown" v-html="renderMarkdown(msg.content)"></div>
                 <span v-if="msg.typing" class="cursor"></span>
               </template>
               <template v-else>{{ msg.content }}</template>
@@ -128,7 +128,7 @@
             <span class="history-role">{{ item.role === 'user' ? '我' : '助手' }}</span>
             <span class="history-time">{{ formatTime(item.createdAt) }}</span>
           </div>
-          <div class="history-content">{{ item.content }}</div>
+          <div class="history-content history-content-markdown" v-html="renderMarkdown(item.content)"></div>
           <div v-if="item.products && item.products.length" class="history-products">
             推荐商品 {{ item.products.length }} 个
           </div>
@@ -142,6 +142,8 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import MarkdownIt from 'markdown-it'
+import DOMPurify from 'dompurify'
 import IconFont from '../../components/IconFont.vue'
 import { useCartStore } from '../../store/cart'
 import { useUserStore } from '../../store/user'
@@ -161,6 +163,12 @@ const historyVisible = ref(false)
 const historyLoading = ref(false)
 const historyItems = ref([])
 const cartSyncing = ref(false)
+const md = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true
+})
+md.enable(['table'])
 
 const userInitial = computed(() =>
   (userStore.userInfo?.nickname || userStore.userInfo?.username || 'U')[0].toUpperCase()
@@ -381,6 +389,14 @@ function sanitizeReplyText (text) {
   return s
 }
 
+function renderMarkdown (text) {
+  const source = String(text || '')
+  const html = md.render(source)
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true }
+  })
+}
+
 async function syncCartBadge () {
   if (!userStore.isLoggedIn || cartSyncing.value) return
   cartSyncing.value = true
@@ -540,6 +556,63 @@ async function syncCartBadge () {
 
 .msg-content {
   white-space: pre-line;
+}
+
+.msg-content-markdown {
+  white-space: normal;
+}
+
+.msg-content-markdown :deep(p) {
+  margin: 0.35em 0;
+}
+
+.msg-content-markdown :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.msg-content-markdown :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.msg-content-markdown :deep(strong) {
+  font-weight: 700;
+}
+
+.msg-content-markdown :deep(ul),
+.msg-content-markdown :deep(ol) {
+  margin: 0.4em 0 0.4em 1.2em;
+  padding: 0;
+}
+
+.msg-content-markdown :deep(li) {
+  margin: 0.2em 0;
+}
+
+.msg-content-markdown :deep(code) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: rgba(148, 163, 184, 0.18);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+}
+
+.msg-content-markdown :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 13px;
+}
+
+.msg-content-markdown :deep(th),
+.msg-content-markdown :deep(td) {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.msg-content-markdown :deep(th) {
+  background: rgba(148, 163, 184, 0.14);
+  font-weight: 700;
 }
 
 .msg-bubble.assistant {
@@ -742,10 +815,51 @@ async function syncCartBadge () {
 }
 
 .history-content {
-  white-space: pre-line;
   color: var(--text-primary);
   font-size: 14px;
   line-height: 1.6;
+}
+
+.history-content-markdown :deep(p) {
+  margin: 0.3em 0;
+}
+
+.history-content-markdown :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.history-content-markdown :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.history-content-markdown :deep(strong) {
+  font-weight: 700;
+}
+
+.history-content-markdown :deep(ul),
+.history-content-markdown :deep(ol) {
+  margin: 0.35em 0 0.35em 1.1em;
+  padding: 0;
+}
+
+.history-content-markdown :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.45em 0;
+  font-size: 13px;
+}
+
+.history-content-markdown :deep(th),
+.history-content-markdown :deep(td) {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.history-content-markdown :deep(th) {
+  background: rgba(148, 163, 184, 0.14);
+  font-weight: 700;
 }
 
 .history-products {
